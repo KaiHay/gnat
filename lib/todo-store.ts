@@ -22,6 +22,7 @@ interface TodoStore {
     toggleTodo: (id: string) => void;
     deleteTodo: (id: string) => void;
     clearCompleted: () => void;
+    toggleContractTodo: (contractId: string, todoId: string) => void;
 }
 
 export interface Contract {
@@ -153,4 +154,32 @@ export const useTodoStore = create<TodoStore>((set) => ({
         set((state) => ({
             todos: state.todos.filter((todo) => !todo.completed),
         })),
+
+    toggleContractTodo: (contractId: string, todoId: string) =>
+        set((state) => {
+            let earnings = state.earnings;
+            let biggestContract = state.biggestContract;
+
+            const contracts = state.contracts.map((contract) => {
+                if (contract.id !== contractId) return contract;
+
+                const todos = contract.todos.map((todo) =>
+                    todo.id === todoId ? { ...todo, completed: !todo.completed } : todo
+                );
+                const wasCompleted = contract.completed;
+                const nowCompleted = todos.every((todo) => todo.completed);
+
+                // Only add earnings if contract just became completed
+                if (!wasCompleted && nowCompleted) {
+                    earnings += contract.reward;
+                    if (!biggestContract || contract.reward > biggestContract.reward) {
+                        biggestContract = { ...contract, todos, completed: true };
+                    }
+                }
+
+                return { ...contract, todos, completed: nowCompleted };
+            });
+
+            return { contracts, earnings, biggestContract };
+        }),
 })); 
